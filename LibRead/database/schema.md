@@ -1,10 +1,10 @@
-# 🗄️ LibRead — Database Schema & Architecture
+# LibRead — Database Schema & Architecture
 
 This document contains the complete relational database schema design for the **LibRead** application. The database is architected to optimize user role isolation, batch-based dynamic routing, and structured moderation pipelines.
 
 ---
 
-## 🛠️ Complete DDL & Table Structure
+## Complete DDL & Table Structure
 
 ### 1. Batches Table (`batches`)
 Manages university batches for dynamic semester progression and targeted resource visibility.
@@ -56,14 +56,14 @@ Handles student and CR-contributed crowdsourced learning materials with built-in
 CREATE TABLE resources (
     resource_id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL, -- Automatically resolves Batch and Department layers
-    uploaded_by INT NOT NULL,
+    uploader_id INT NOT NULL,
     resource_type ENUM('PDF', 'Image', 'Link', 'Video') NOT NULL,
     file_or_link_path TEXT NOT NULL,
     description TEXT,
     status ENUM('Pending', 'Approved') DEFAULT 'Pending', -- Core moderation hook
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (uploader_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 ```
 
@@ -89,7 +89,7 @@ CREATE TABLE books (
     category VARCHAR(50) NOT NULL,
     pdf_file_path VARCHAR(255) NOT NULL,
     is_downloadable BOOLEAN DEFAULT FALSE, -- Toggles UI download vs In-App Reader visibility
-    uploaded_by INT,
-    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE SET NULL
+    uploader_id INT,
+    FOREIGN KEY (uploader_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 ```
