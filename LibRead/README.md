@@ -49,12 +49,13 @@ The system architecture defines 5 distinct user roles with the following access 
 
 ---
 
-##  3. Database Schema Overview (Entity Relations)
+## 3. Database Schema Overview (Entity Relations)
 
-To support the business logic, the relational database will structure data across the following core entities:
+To support the business logic, the relational database structures data across the following core entities to enforce normalization, maintain data integrity, and support scalable moderation workflows:
 
-1.  **Users Table:** `id`, `name`, `email`, `password`, `role` *(Student/Teacher/Coordinator/Admin)*, `department`, `batch`.
-2.  **Books Table:** `book_id`, `title`, `author`, `category`, `pdf_file_path`, `is_downloadable` *(Boolean)*.
-3.  **Batches Table:** `batch_id`, `department_name`, `batch_number` *(e.g., 14th)*, `current_semester`.
-4.  **Courses Table:** `course_code`, `course_name`, `type` *(Theory/Lab)*, `batch_id`, `assigned_teacher_id`.
-5.  **Resources Table:** `resource_id`, `course_id`, `uploader_id` *(User ID)*, `file_type` *(Image/PDF/Link)*, `status` *(Pending/Approved)*.
+1. **Batches Table:** `batch_id`, `department` *(ENUM)*, `batch_number`, `current_semester`.
+2. **Users Table:** `user_id`, `name`, `email`, `password`, `role` *(Guest/General_User/Student/CR/Teacher/Admin)*, `student_id`, `batch_id` *(Foreign Key connecting to Batches)*.
+3. **Courses Table:** `course_id`, `course_code`, `course_name`, `course_type` *(Theory/Lab)*, `semester`, `batch_id` *(Foreign Key)*, `teacher_id` *(Foreign Key connecting to Users)*.
+4. **Academic Resources Table:** `resource_id`, `course_id` *(Foreign Key)*, `uploader_id` *(Foreign Key connecting to Users)*, `resource_type` *(PDF/Image/Link/Video)*, `file_or_link_path`, `description`, `status` *(Pending/Approved)*.
+5. **Course Coordinators Table:** `coordinator_id`, `teacher_id` *(Foreign Key)*, `batch_id` *(Foreign Key)*.
+6. **Library Books Table:** `book_id`, `title`, `author`, `category`, `pdf_file_path`, `is_downloadable` *(Boolean)*, `uploader_id` *(Foreign Key)*.
