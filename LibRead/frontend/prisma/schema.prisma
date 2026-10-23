@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum Department {
+  CSE
+  EEE
+  English
+  Law
+  BBA
+  Economics
+  Political_Science @map("Political Science")
+}
+
+
+enum UserRole {
+  Guest
+  General_User
+  Student
+  CR
+  Teacher
+  Admin
+}
+
+enum CourseType {
+  Theory
+  Lab
+}
+
+enum ResourceType {
+  PDF
+  Image
+  Link
+  Video
+}
+
+enum ResourceStatus {
+  Pending
+  Approved
+}
+
+model Batch {
+  batchId         Int          @id @default(autoincrement()) @map("batch_id")
+  department      Department
+  batchNumber     Int          @map("batch_number")
+  currentSemester Int          @map("current_semester")
+  users           User[]
+  courses         Course[]
+  coordinators    Coordinator[]
+
+  @@unique([department, batchNumber], map: "unique_dept_batch")
+  @@map("batches")
+}
+
+model User {
+  userId       Int            @id @default(autoincrement()) @map("user_id")
+  name         String         @db.VarChar(100)
+  email        String         @unique @db.VarChar(100)
+  password     String         @db.VarChar(255)
+  role         UserRole
+  studentId    String?        @unique @map("student_id") @db.VarChar(20)
+  batchId      Int?           @map("batch_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  batch        Batch?         @relation(fields: [batchId], references: [batchId], onDelete: SetNull)
+  taughtCourses Course[]      @relation("CourseTeacher")
+  resources    Resource[]
+  coordinators Coordinator[]
+  books        Book[]
+
+  @@index([batchId], map: "users_batch_id_fkey")
+  @@map("users")
+}
+
+model Course {
+  courseId   Int        @id @default(autoincrement()) @map("course_id")
+  courseCode String     @map("course_code") @db.VarChar(20)
+  courseName String     @map("course_name") @db.VarChar(150)
+  courseType CourseType @map("course_type")
+  semester   Int
+  batchId    Int        @map("batch_id")
+  teacherId  Int?       @map("teacher_id")
+  batch      Batch      @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
+  teacher    User?      @relation("CourseTeacher", fields: [teacherId], references: [userId], onDelete: SetNull)
+  resources  Resource[]
+
+  @@index([batchId], map: "courses_batch_id_fkey")
+  @@index([teacherId], map: "courses_teacher_id_fkey")
+  @@map("courses")
+}
+
+model Resource {
+  resourceId     Int            @id @default(autoincrement()) @map("resource_id")
+  courseId       Int            @map("course_id")
+  uploaderId     Int            @map("uploader_id")
+  resourceType   ResourceType   @map("resource_type")
+  fileOrLinkPath String         @map("file_or_link_path") @db.Text
+  description    String?        @db.Text
+  status         ResourceStatus @default(Pending)
+  uploadedAt     DateTime       @default(now()) @map("uploaded_at")
+  course         Course         @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
+  uploader       User           @relation(fields: [uploaderId], references: [userId], onDelete: Cascade)
+
+  @@index([courseId], map: "resources_course_id_fkey")
+  @@index([uploaderId], map: "resources_uploader_id_fkey")
+  @@map("resources")
+}
+
+model Coordinator {
+  coordinatorId Int   @id @default(autoincrement()) @map("coordinator_id")
+  teacherId     Int   @map("teacher_id")
+  batchId       Int   @map("batch_id")
+  teacher       User  @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+  batch         Batch @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
+
+  @@index([batchId], map: "coordinators_batch_id_fkey")
+  @@index([teacherId], map: "coordinators_teacher_id_fkey")
+  @@map("coordinators")
+}
+
+model Book {
+  bookId          Int     @id @default(autoincrement()) @map("book_id")
+  title           String  @db.VarChar(255)
+  author          String  @db.VarChar(100)
+  category        String  @db.VarChar(50)
+  pdfFilePath     String  @map("pdf_file_path") @db.VarChar(255)
+  isDownloadable  Boolean @default(false) @map("is_downloadable")
+  uploaderId      Int?    @map("uploader_id")
+  uploader        User?   @relation(fields: [uploaderId], references: [userId], onDelete: SetNull)
+
+  @@index([uploaderId], map: "books_uploader_id_fkey")
+  @@map("books")
+}
