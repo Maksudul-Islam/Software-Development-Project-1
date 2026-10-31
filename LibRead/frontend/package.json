@@ -9,7 +9,9 @@
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:pull": "prisma db pull"
+    "db:pull": "prisma db pull",
+    "admin:bootstrap": "node --env-file=.env scripts/bootstrap-admin.mjs",
+    "db:setup": "node --env-file=.env scripts/db-setup.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

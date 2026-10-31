@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum Department {
   CSE
   EEE
@@ -17,7 +16,6 @@ enum Department {
   Economics
   Political_Science @map("Political Science")
 }
-
 
 enum UserRole {
   Guest
@@ -45,11 +43,17 @@ enum ResourceStatus {
   Approved
 }
 
+enum BookStatus {
+  Draft
+  Pending
+  Published
+}
+
 model Batch {
-  batchId         Int          @id @default(autoincrement()) @map("batch_id")
+  batchId         Int           @id @default(autoincrement()) @map("batch_id")
   department      Department
-  batchNumber     Int          @map("batch_number")
-  currentSemester Int          @map("current_semester")
+  batchNumber     Int           @map("batch_number")
+  currentSemester Int           @map("current_semester")
   users           User[]
   courses         Course[]
   coordinators    Coordinator[]
@@ -59,19 +63,19 @@ model Batch {
 }
 
 model User {
-  userId       Int            @id @default(autoincrement()) @map("user_id")
-  name         String         @db.VarChar(100)
-  email        String         @unique @db.VarChar(100)
-  password     String         @db.VarChar(255)
-  role         UserRole
-  studentId    String?        @unique @map("student_id") @db.VarChar(20)
-  batchId      Int?           @map("batch_id")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  batch        Batch?         @relation(fields: [batchId], references: [batchId], onDelete: SetNull)
+  userId        Int           @id @default(autoincrement()) @map("user_id")
+  name          String        @db.VarChar(100)
+  email         String        @unique @db.VarChar(100)
+  password      String        @db.VarChar(255)
+  role          UserRole
+  studentId     String?       @unique @map("student_id") @db.VarChar(20)
+  batchId       Int?          @map("batch_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  batch         Batch?        @relation(fields: [batchId], references: [batchId], onDelete: SetNull)
   taughtCourses Course[]      @relation("CourseTeacher")
-  resources    Resource[]
-  coordinators Coordinator[]
-  books        Book[]
+  resources     Resource[]
+  coordinators  Coordinator[]
+  books         Book[]
 
   @@index([batchId], map: "users_batch_id_fkey")
   @@map("users")
@@ -123,16 +127,75 @@ model Coordinator {
   @@map("coordinators")
 }
 
+model MainCategory {
+  mainCategoryId Int    @id @default(autoincrement()) @map("main_category_id")
+  name           String @db.VarChar(100)
+  normalizedName String @unique @map("normalized_name") @db.VarChar(100)
+
+  primaryBooks    Book[]             @relation("BookPrimaryMainCategory")
+  bookAssignments BookMainCategory[]
+  subcategories   Subcategory[]
+
+  @@map("main_categories")
+}
+
+model Subcategory {
+  subcategoryId  Int    @id @default(autoincrement()) @map("subcategory_id")
+  mainCategoryId Int    @map("main_category_id")
+  name           String @db.VarChar(100)
+  normalizedName String @map("normalized_name") @db.VarChar(100)
+
+  mainCategory    MainCategory                @relation(fields: [mainCategoryId], references: [mainCategoryId], onDelete: Restrict)
+  bookAssignments BookSubcategoryAssignment[]
+
+  @@unique([mainCategoryId, subcategoryId], map: "unique_subcategory_parent")
+  @@unique([mainCategoryId, normalizedName], map: "unique_subcategory_name_per_main")
+  @@map("subcategories")
+}
+
+model BookMainCategory {
+  bookId         Int @map("book_id")
+  mainCategoryId Int @map("main_category_id")
+
+  book          Book                        @relation(fields: [bookId], references: [bookId], onDelete: Cascade)
+  mainCategory  MainCategory                @relation(fields: [mainCategoryId], references: [mainCategoryId], onDelete: Restrict)
+  subcategories BookSubcategoryAssignment[]
+
+  @@id([bookId, mainCategoryId])
+  @@index([mainCategoryId], map: "book_main_categories_main_category_id_idx")
+  @@map("book_main_categories")
+}
+
+model BookSubcategoryAssignment {
+  bookId         Int @map("book_id")
+  mainCategoryId Int @map("main_category_id")
+  subcategoryId  Int @map("subcategory_id")
+
+  bookMainCategory BookMainCategory @relation(fields: [bookId, mainCategoryId], references: [bookId, mainCategoryId], onDelete: Cascade)
+  subcategory      Subcategory      @relation(fields: [mainCategoryId, subcategoryId], references: [mainCategoryId, subcategoryId], onDelete: Restrict)
+
+  @@id([bookId, mainCategoryId, subcategoryId])
+  @@index([mainCategoryId, subcategoryId], map: "book_subcategory_assignments_subcategory_idx")
+  @@map("book_subcategory_assignments")
+}
+
 model Book {
-  bookId          Int     @id @default(autoincrement()) @map("book_id")
-  title           String  @db.VarChar(255)
-  author          String  @db.VarChar(100)
-  category        String  @db.VarChar(50)
-  pdfFilePath     String  @map("pdf_file_path") @db.VarChar(255)
-  isDownloadable  Boolean @default(false) @map("is_downloadable")
-  uploaderId      Int?    @map("uploader_id")
-  uploader        User?   @relation(fields: [uploaderId], references: [userId], onDelete: SetNull)
+  bookId         Int        @id @default(autoincrement()) @map("book_id")
+  title          String     @db.VarChar(255)
+  author         String     @db.VarChar(100)
+  category       String     @db.VarChar(50)
+  pdfFilePath    String     @map("pdf_file_path") @db.VarChar(255)
+  isDownloadable Boolean    @default(false) @map("is_downloadable")
+  uploaderId     Int?       @map("uploader_id")
+  status         BookStatus @default(Draft)
+
+  primaryMainCategoryId Int          @map("primary_main_category_id")
+  primaryMainCategory   MainCategory @relation("BookPrimaryMainCategory", fields: [primaryMainCategoryId], references: [mainCategoryId], onDelete: Restrict)
+
+  uploader                User?              @relation(fields: [uploaderId], references: [userId], onDelete: SetNull)
+  mainCategoryAssignments BookMainCategory[]
 
   @@index([uploaderId], map: "books_uploader_id_fkey")
+  @@index([primaryMainCategoryId], map: "books_primary_main_category_id_idx")
   @@map("books")
 }
